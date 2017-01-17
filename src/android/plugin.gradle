@@ -1,0 +1,8 @@
+repositories {
+    jcenter()
+}
+
+dependencies {
+    compile 'com.facebook.react:react-native:0.19.+'
+    compile 'com.facebook.conceal:conceal:1.1.2@aar'
+}

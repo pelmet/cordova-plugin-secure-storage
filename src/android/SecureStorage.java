@@ -31,6 +31,7 @@ import java.nio.charset.Charset;
 public class SecureStorage extends CordovaPlugin {
     private static final String TAG = "SecureStorage";
 
+    private String ALIAS;
     public static final String KEYCHAIN_MODULE = "SecureStorage";
     public static final String KEYCHAIN_DATA = "IONIC_KEYCHAIN";
     public static final String EMPTY_STRING = "";
@@ -63,9 +64,9 @@ public class SecureStorage extends CordovaPlugin {
         if ("init".equals(action)) {
 
             init();
-
+            ALIAS = getContext().getPackageName() + "." + args.getString(0);
             int SUPPORTS_NATIVE_AES = Build.VERSION.SDK_INT >= 21 ? 1 : 0;
-            callbackContext.success(SUPPORTS_NATIVE_AES);
+            callbackContext.success(1);
         }
         if ("set".equals(action)) {
             final String key = args.getString(0);
@@ -90,10 +91,35 @@ public class SecureStorage extends CordovaPlugin {
             return true;
         }
         if ("decrypt_rsa".equals(action)) {
-            return false;
+            // getArrayBuffer does base64 decoding
+            final byte[] decryptMe = args.getArrayBuffer(0);
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    try {
+                        byte[] decrypted = RSA.decrypt(decryptMe, ALIAS);
+                        callbackContext.success(new String (decrypted));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Decrypt (RSA) failed :", e);
+                        callbackContext.error(e.getMessage());
+                    }
+                }
+            });
+            return true;
         }
         if ("encrypt_rsa".equals(action)) {
-            return false;
+            final String encryptMe = args.getString(0);
+            cordova.getThreadPool().execute(new Runnable() {
+                public void run() {
+                    try {
+                        byte[] encrypted = RSA.encrypt(encryptMe.getBytes(), ALIAS);
+                        callbackContext.success(Base64.encodeToString(encrypted, Base64.DEFAULT));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Encrypt (RSA) failed :", e);
+                        callbackContext.error(e.getMessage());
+                    }
+                }
+            });
+            return true;
         }
 
         if ("secureDevice".equals(action)) {
